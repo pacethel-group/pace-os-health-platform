@@ -1,43 +1,35 @@
-# pace-os-health-platform
-Health IoT Platform - Real-time ingestion API (Node/Go + Postgres + TimescaleDB) with smartwatch OS frontend
+# PACE OS - Health IoT Platform
+> A real-time health monitoring & smart alarm platform. Frontend is a smartwatch OS, backend is a time-series IoT ingestion system.
 
-PACE OS - Health IoT Platform
-A real-time health monitoring & smart alarm platform. Frontend is a smartwatch OS, backend is a time-series IoT ingestion system.
+### Live Demo
+Frontend: PACE OS Dashboard (React + Canvas ECG for heart + glucose tracking)
 
-Stack DB Realtime
+### Why this is a Backend Project
+This is NOT a digital clock. It's a wearable health platform simulation:
+- Devices push heart rate / glucose readings every second
+- Backend must ingest, validate, store, and stream 1000+ req/sec
+- Alarms must fire reliably even when user is offline
+- Data must be aggregated for 24h/7d charts without slowing down
 
-Live Demo
-Frontend: PACE OS Dashboard - The clock you saw (React + Canvas ECG)
+### Architecture
+[Wearable Device] --HTTP--> [API Gateway (Fastify)] --> [Redis Queue] --> [Worker: Alarm Scheduler] --> [Push Service]
+[Frontend PACE OS] <--WebSocket-- [Realtime Service] <-- [TimescaleDB]
 
-Why this project?
-This is NOT a digital clock. It's a simulation of a wearable health platform:
+### Features
+- Clock Service: Timezone-aware, DST handling (Local, UTC, NYC, LAX, LDN, TYO)
+- Alarm Service: Cron-based, repeat logic, snooze with idempotency
+- Ingestion API: POST /api/v1/readings { deviceId, bpm, glucose, timestamp }
+- Health Analytics: GET /api/v1/health/summary?range=24h
+- Realtime: WebSocket live ECG + glucose stream
 
-Devices push heart rate / glucose readings every second
-Backend must ingest, validate, store, and stream 1k+ req/sec
-Alarms must fire reliably even when user is offline
-Architecture
-[Wearable Device] --MQTT/HTTP--> [API Gateway (Fastify)] --> [Redis Queue]
-                                                      |
-                                                      v
-                                           [Worker: Alarm Scheduler]
-                                                      |
-[Frontend PACE OS] <--WebSocket-- [Realtime Service] <-- [TimescaleDB] 
-                                      |
-                                  [Push Service: FCM/Email]
-Core Features Implemented
-Clock Service: Timezone-aware, DST handling
-Alarm Service: Cron-based, repeat logic, snooze with idempotency keys
-Ingestion API: POST /api/v1/readings { deviceId, bpm, glucose, timestamp } - validated with Zod
-Health Analytics: GET /api/v1/health/summary?range=24h - aggregates with TimescaleDB continuous aggregates
-Tech Stack (Backend Focus)
-Runtime: Node.js + Fastify OR Go + Gin
-Database: PostgreSQL + TimescaleDB extension for time-series
-Cache/Queue: Redis + BullMQ
-Realtime: Socket.io / ws
-Infra: Docker + docker-compose, GitHub Actions CI
-Database Schema
-sql
--- Time-series table (hypertable)
+### Tech Stack
+- Runtime: Node.js + Fastify (or Go + Gin)
+- Database: PostgreSQL + TimescaleDB for time-series
+- Cache/Queue: Redis + BullMQ
+- Realtime: WebSockets
+- Infra: Docker, docker-compose
+
+### Database Schema
 CREATE TABLE health_readings (
   time TIMESTAMPTZ NOT NULL,
   user_id UUID NOT NULL,
@@ -49,32 +41,37 @@ CREATE TABLE health_readings (
 SELECT create_hypertable('health_readings', 'time');
 
 CREATE TABLE alarms (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   time TIME NOT NULL,
-  timezone TEXT NOT NULL,
+  timezone TEXT NOT NULL DEFAULT 'Africa/Lagos',
   label TEXT,
-  repeat_days INT[], -- 0-6
+  repeat_days INT[],
   is_active BOOLEAN DEFAULT true,
   last_fired_at TIMESTAMPTZ
 );
-API Spec
-Method	Endpoint	Description
-POST	/api/v1/alarms	Create alarm
-GET	/api/v1/alarms	List user alarms
-POST	/api/v1/readings	Ingest health data (high throughput)
-GET	/api/v1/health/live	WebSocket stream
-GET	/api/v1/health/summary	Aggregated analytics
-How to Run
-bash
+
+### API Endpoints
+POST /api/v1/alarms - Create alarm
+GET /api/v1/alarms - List user alarms
+POST /api/v1/readings - Ingest health data
+GET /api/v1/health/live - WebSocket stream
+GET /api/v1/health/summary - Aggregated analytics
+
+### How to Run
 docker-compose up -d
 npm run dev
-# API at http://localhost:3000, Frontend at http://localhost:5173
-What I'd Build Next (for interviewers)
- Add JWT Auth + RBAC
- Add rate limiting (100 req/min per device)
- Implement TimescaleDB continuous aggregates for 1h/1d rollups
- Add tests for alarm DST edge case
-Author
-Philip Amadi - Backend Engineer (Jos, NG - Open to Remote)
 
+API at http://localhost:3000
+Frontend at http://localhost:5173
+
+### Roadmap
+- Add JWT Auth + RBAC
+- Add rate limiting (100 req/min per device)
+- Implement TimescaleDB continuous aggregates
+- Add tests for alarm DST edge case
+
+### Author
+Philip Amadi - Backend Engineer (Jos, NG - Open to Remote)
+GitHub: Pacethel-group
+Stack: Node.js, Go, PostgreSQL, TimescaleDB, Redis, Docker, WebSockets
