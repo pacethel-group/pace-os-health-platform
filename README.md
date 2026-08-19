@@ -1,9 +1,6 @@
 # PACE OS - Health IoT Platform
 > A real-time health monitoring & smart alarm platform. Frontend is a smartwatch OS, backend is a time-series IoT ingestion system.
 
-https://pacethel-group.github.io/pace-os-health-platform/
-
-
 ### Live Demo
 Frontend: PACE OS Dashboard (React + Canvas ECG for heart + glucose tracking)
 
